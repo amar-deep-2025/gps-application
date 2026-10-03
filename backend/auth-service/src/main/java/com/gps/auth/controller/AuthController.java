@@ -1,7 +1,9 @@
 package com.gps.auth.controller;
 
 
+import com.gps.auth.dto.request.LoginRequest;
 import com.gps.auth.dto.request.RegisterRequest;
+import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +33,11 @@ public class AuthController {
                 .body(Map.of("message","user registered successfully"));
 
 
+    }
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request){
+
+        LoginResponse response=authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

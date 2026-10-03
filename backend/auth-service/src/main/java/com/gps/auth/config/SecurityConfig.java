@@ -1,16 +1,23 @@
-package com.gps.auth.security;
+package com.gps.auth.config;
 
+import com.gps.auth.jwt.JwtFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -22,8 +29,11 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf->csrf.disable())
-                .authorizeHttpRequests(auth->auth.requestMatchers("/api/auth/register").permitAll()
+                .authorizeHttpRequests(auth->auth.requestMatchers(HttpMethod.POST,"/api/auth/register","/api/auth/login").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(form->form.disable());
         return http.build();
