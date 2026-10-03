@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,5 +61,18 @@ public class AuthController {
                         "message","Logout successful"
                 )
         );
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<Map<String,String>> logoutAll(Authentication auth){
+
+        authService.logoutAll(auth.getName());
+        return ResponseEntity.ok(
+                Map.of(
+                        "message","All sessions logged out successfully"
+                )
+        );
+
+
     }
 }

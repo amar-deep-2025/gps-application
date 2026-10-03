@@ -105,4 +105,12 @@ public class RefreshTokenService {
             throw new IllegalStateException("Unable to hash refresh token",e);
         }
     }
+
+    @Transactional
+    public int logoutAll(Long userId){
+        return refreshTokenRepository.revokeAllActiveTokens(
+                userId,
+                Instant.now()
+        );
+    }
 }

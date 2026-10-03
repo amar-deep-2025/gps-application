@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Getter
@@ -79,5 +81,15 @@ public class AuthService {
               "Bearer"
         );
 
+    }
+
+    @Transactional
+    public void logoutAll(String publicId){
+
+        User user=userRepository.findByPublicId(UUID.fromString(publicId))
+                .orElseThrow(()->
+                        new IllegalArgumentException("User not found"));
+
+        refreshTokenService.logoutAll(user.getId());
     }
 }

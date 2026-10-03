@@ -1,4 +1,3 @@
-
 package com.gps.auth.jwt;
 
 import com.gps.auth.entity.User;
@@ -18,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -27,16 +27,17 @@ public class JwtFilter extends OncePerRequestFilter {
     private final UserRepository userRepository;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request){
+    protected boolean shouldNotFilter(HttpServletRequest request) {
 
-        String path=request.getServletPath();
-        return request.getMethod().equals("POST")
-                &&(
-                        path.equals("/api/auth/register")||
-                                path.equals("/api/auth/login")||
-                                path.startsWith("api/auth/refresh")||
-                                path.startsWith("api/auth/logout")
-                );
+        String path = request.getServletPath();
+
+        return "POST".equalsIgnoreCase(request.getMethod())
+                && (
+                path.equals("/api/auth/register")
+                        || path.equals("/api/auth/login")
+                        || path.equals("/api/auth/refresh")
+                        || path.equals("/api/auth/logout")
+        );
     }
 
     @Override
@@ -51,6 +52,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authorizationHeader == null
                 || !authorizationHeader.startsWith("Bearer ")) {
+
             filterChain.doFilter(request, response);
             return;
         }
@@ -59,6 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (!jwtUtil.isAccessTokenValid(token)) {
             SecurityContextHolder.clearContext();
+
             response.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "Invalid or expired access token"
@@ -69,11 +72,30 @@ public class JwtFilter extends OncePerRequestFilter {
         Claims claims = jwtUtil.extractClaims(token);
         String publicId = claims.getSubject();
 
-        User user = userRepository.findByPublicId(publicId)
-                .orElse(null);
+        UUID userPublicId;
 
+        try {
+            userPublicId = UUID.fromString(publicId);
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            SecurityContextHolder.clearContext();
+
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid user identifier in token"
+            );
+            return;
+        }
+
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElse(null);
+        System.out.println("JWT user found: "+(user!=null));
+        if (user!=null){
+            System.out.println("JWT user status: "+user.getStatus());
+            System.out.println("JWT user role: "+user.getRole());
+        }
         if (user == null) {
             SecurityContextHolder.clearContext();
+
             response.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "User not found"
@@ -83,6 +105,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (user.getStatus() != Status.ACTIVE) {
             SecurityContextHolder.clearContext();
+
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN,
                     "User account is not active"
@@ -92,7 +115,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         var authentication =
                 new UsernamePasswordAuthenticationToken(
-                        user.getPublicId(),
+                        user.getPublicId().toString(),
                         null,
                         List.of(
                                 new SimpleGrantedAuthority(
