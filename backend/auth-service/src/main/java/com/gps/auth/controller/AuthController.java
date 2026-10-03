@@ -2,9 +2,12 @@ package com.gps.auth.controller;
 
 
 import com.gps.auth.dto.request.LoginRequest;
+import com.gps.auth.dto.request.RefreshTokenRequest;
 import com.gps.auth.dto.request.RegisterRequest;
 import com.gps.auth.dto.response.LoginResponse;
+import com.gps.auth.dto.response.TokenResponse;
 import com.gps.auth.service.AuthService;
+import com.gps.auth.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody
@@ -39,5 +43,12 @@ public class AuthController {
 
         LoginResponse response=authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request){
+        TokenResponse response=refreshTokenService.refreshTokens(request.refreshToken());
+        return  ResponseEntity.ok(response);
     }
 }

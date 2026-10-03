@@ -29,7 +29,10 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf->csrf.disable())
-                .authorizeHttpRequests(auth->auth.requestMatchers(HttpMethod.POST,"/api/auth/register","/api/auth/login").permitAll()
+                .authorizeHttpRequests(auth->auth.requestMatchers(HttpMethod.POST,
+                                "/api/auth/register",
+                                          "/api/auth/login",
+                                          "/api/auth/refresh").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(
                         jwtFilter,

@@ -26,6 +26,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public void register(RegisterRequest request){
@@ -46,7 +47,7 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request){
 
         User user=userRepository.findByEmailIgnoreCase(request.getEmail().trim())
@@ -69,11 +70,12 @@ public class AuthService {
             );
         }
         String accessToken= jwtService.generateAccessToken(user.getPublicId().toString(), user.getEmail());
-
+        String refreshToken=refreshTokenService.createRefreshToken(user);
         return new LoginResponse(
               "Login successful",
               user.getPublicId().toString(),
               accessToken,
+              refreshToken,
               "Bearer"
         );
 
