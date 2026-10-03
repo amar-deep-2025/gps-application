@@ -76,6 +76,20 @@ public class RefreshTokenService {
         );
 
     }
+
+    @Transactional
+    public void logout(String rawToken){
+        if (rawToken==null || rawToken.isBlank()){
+            return;
+        }
+        String tokenHash=hashToken(rawToken);
+
+        refreshTokenRepository.findByTokenHash(tokenHash).ifPresent(token->{
+            if(!token.isRevoked()){
+                token.setRevokedAt(Instant.now());
+            }
+        });
+    }
     public String hashToken(String token){
         try{
             MessageDigest digest=MessageDigest.getInstance("SHA-256");
