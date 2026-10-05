@@ -1,11 +1,13 @@
 package com.gps.auth.controller;
 
 
+import com.gps.auth.dto.request.ChangePasswordRequest;
 import com.gps.auth.dto.request.LoginRequest;
 import com.gps.auth.dto.request.RefreshTokenRequest;
 import com.gps.auth.dto.request.RegisterRequest;
 import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.dto.response.TokenResponse;
+import com.gps.auth.dto.response.UserResponse;
 import com.gps.auth.service.AuthService;
 import com.gps.auth.service.RefreshTokenService;
 import jakarta.validation.Valid;
@@ -13,10 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -73,6 +72,24 @@ public class AuthController {
                 )
         );
 
+    }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(Authentication auth){
+        UserResponse response= authService.getCurrentUser(auth.getName());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/me/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                                                              Authentication auth){
+        authService.changePassword(auth.getName(), request);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message","Password changed successfully"
+                )
+        );
     }
 }
