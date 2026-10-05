@@ -1,10 +1,7 @@
 package com.gps.auth.controller;
 
 
-import com.gps.auth.dto.request.ChangePasswordRequest;
-import com.gps.auth.dto.request.LoginRequest;
-import com.gps.auth.dto.request.RefreshTokenRequest;
-import com.gps.auth.dto.request.RegisterRequest;
+import com.gps.auth.dto.request.*;
 import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.dto.response.TokenResponse;
 import com.gps.auth.dto.response.UserResponse;
@@ -92,4 +89,25 @@ public class AuthController {
                 )
         );
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request){
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(
+                Map.of(
+                        "message","If the email exists, a password reset link has been sent"
+                )
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        authService.resetPassword(request);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset successfully")
+        );
+    }
+
 }

@@ -1,10 +1,9 @@
 package com.gps.auth.service;
 
-import com.gps.auth.dto.request.ChangePasswordRequest;
-import com.gps.auth.dto.request.LoginRequest;
-import com.gps.auth.dto.request.RegisterRequest;
+import com.gps.auth.dto.request.*;
 import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.dto.response.UserResponse;
+import com.gps.auth.entity.PasswordResetToken;
 import com.gps.auth.entity.User;
 import com.gps.auth.enums.Role;
 import com.gps.auth.enums.Status;
@@ -31,6 +30,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetTokenService passwordResetTokenService;
+
 
     @Transactional
     public void register(RegisterRequest request){
@@ -137,5 +138,50 @@ public class AuthService {
 
         refreshTokenService.logoutAll(user.getId());
 
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request){
+        userRepository.findByEmailIgnoreCase(request.email())
+                .ifPresent(user->{
+                    String rawToken= passwordResetTokenService.createToken(user);
+
+                    //Later this token will be sent through email
+                    System.out.println("Password reset token for user "+user.getEmail()+" is: "+rawToken);
+                });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException(
+                    "New password and confirm password do not match"
+            );
+        }
+
+        PasswordResetToken resetToken =
+                passwordResetTokenService.validateToken(request.token());
+
+        User user = resetToken.getUser();
+
+        if (passwordEncoder.matches(
+                request.newPassword(),
+                user.getPasswordHash())) {
+
+            throw new IllegalArgumentException(
+                    "New password must be different from old password"
+            );
+        }
+
+        user.setPasswordHash(
+                passwordEncoder.encode(request.newPassword())
+        );
+
+        userRepository.save(user);
+
+        passwordResetTokenService.markAsUsed(resetToken);
+
+        refreshTokenService.logoutAll(user.getId());
     }
 }
