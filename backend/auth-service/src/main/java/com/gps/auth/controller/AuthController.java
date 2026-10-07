@@ -110,4 +110,15 @@ public class AuthController {
         );
     }
 
+    @PostMapping("/verify-email")
+    public ResponseEntity<Map<String, String>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request) {
+
+        authService.verifyEmail(request);
+
+        return ResponseEntity.ok(
+                Map.of("message", "Email verified successfully")
+        );
+    }
+
 }

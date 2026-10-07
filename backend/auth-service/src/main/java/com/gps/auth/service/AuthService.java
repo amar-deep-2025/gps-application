@@ -3,6 +3,7 @@ package com.gps.auth.service;
 import com.gps.auth.dto.request.*;
 import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.dto.response.UserResponse;
+import com.gps.auth.entity.EmailVerificationToken;
 import com.gps.auth.entity.PasswordResetToken;
 import com.gps.auth.entity.User;
 import com.gps.auth.enums.Role;
@@ -31,6 +32,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetTokenService passwordResetTokenService;
+    private final EmailVerificationTokenService emailVerificationTokenService;
 
 
     @Transactional
@@ -50,6 +52,8 @@ public class AuthService {
         user.setRole(Role.USER);
 
         userRepository.save(user);
+        String rawToken= emailVerificationTokenService.createToken(user);
+        System.out.println("Email verification token: "+rawToken);
     }
 
     @Transactional
@@ -183,5 +187,26 @@ public class AuthService {
         passwordResetTokenService.markAsUsed(resetToken);
 
         refreshTokenService.logoutAll(user.getId());
+    }
+
+    @Transactional
+    public void verifyEmail(VerifyEmailRequest request) {
+
+        EmailVerificationToken verificationToken =
+                emailVerificationTokenService.validateToken(request.token());
+
+        User user = verificationToken.getUser();
+
+        if (user.isEmailVerified()) {
+            throw new IllegalArgumentException(
+                    "Email is already verified"
+            );
+        }
+
+        user.setEmailVerified(true);
+
+        userRepository.save(user);
+
+        emailVerificationTokenService.markAsUsed(verificationToken);
     }
 }
