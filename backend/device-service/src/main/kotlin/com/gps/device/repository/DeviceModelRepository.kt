@@ -7,5 +7,5 @@ import java.util.*
 interface DeviceModelRepository: JpaRepository<DeviceModel, Long>{
 
     fun findByPublicId(publicId: UUID):DeviceModel?
-    fun existByModelNumber(modelNumber: String): Boolean
+    fun existsByModelNumber(modelNumber: String): Boolean
 }
