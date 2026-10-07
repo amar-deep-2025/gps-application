@@ -27,4 +27,9 @@ class DeviceController(
     fun getDeviceByPublicId(@PathVariable publicId: UUID):DeviceResponse=
         deviceService.getDeviceByPublicId(publicId)
 
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    fun getAllDevices():List<DeviceResponse> =
+        deviceService.getAll()
 }

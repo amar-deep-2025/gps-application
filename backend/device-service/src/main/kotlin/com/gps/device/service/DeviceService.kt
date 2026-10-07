@@ -2,6 +2,7 @@ package com.gps.device.service
 
 import com.gps.device.dto.request.DeviceCreateRequest
 import com.gps.device.dto.response.DeviceResponse
+import com.gps.device.entity.Device
 import com.gps.device.mapper.DeviceMapper
 import com.gps.device.repository.DeviceModelRepository
 import com.gps.device.repository.DeviceRepository
@@ -39,5 +40,10 @@ class DeviceService(
             ?:throw NoSuchElementException("Device not found")
         return DeviceMapper.toResponse(device);
     }
+
+    fun getAll():List<DeviceResponse> =
+        deviceRepository.findAll()
+            .map { device-> DeviceMapper.toResponse(device)  }
+
 
 }
