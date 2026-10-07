@@ -30,4 +30,8 @@ class DeviceModelController(
     @ResponseStatus(HttpStatus.OK)
     fun getDeviceModelByPublicId(@PathVariable publicId: UUID
     ):DeviceModelResponse=deviceModelService.getByPublicId(publicId);
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    fun getAllDevice():List<DeviceModelResponse> = deviceModelService.getAll()
 }
