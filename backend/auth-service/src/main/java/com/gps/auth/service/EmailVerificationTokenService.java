@@ -91,6 +91,13 @@ public class EmailVerificationTokenService {
         emailVerificationTokenRepository.save(verificationToken);
     }
 
+    @Transactional
+    public int invalidateActiveTokens(Long userId) {
+        return emailVerificationTokenRepository.invalidateActiveTokens(
+                userId,
+                Instant.now()
+        );
+    }
     private String hashToken(String rawToken) {
 
         try {

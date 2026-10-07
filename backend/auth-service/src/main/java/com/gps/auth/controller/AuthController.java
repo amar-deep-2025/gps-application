@@ -120,5 +120,18 @@ public class AuthController {
                 Map.of("message", "Email verified successfully")
         );
     }
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, String>> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest request) {
+
+        authService.resendVerification(request);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message",
+                        "If the email exists and is not verified, a verification email has been sent"
+                )
+        );
+    }
 
 }

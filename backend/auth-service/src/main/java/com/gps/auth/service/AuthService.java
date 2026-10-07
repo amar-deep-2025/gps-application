@@ -209,4 +209,22 @@ public class AuthService {
 
         emailVerificationTokenService.markAsUsed(verificationToken);
     }
+    @Transactional
+    public void resendVerification(ResendVerificationRequest request) {
+
+        userRepository.findByEmailIgnoreCase(request.email())
+                .ifPresent(user -> {
+                    if (user.isEmailVerified()) {
+                        return;
+                    }
+
+                    emailVerificationTokenService.invalidateActiveTokens(user.getId());
+
+                    String rawToken =
+                            emailVerificationTokenService.createToken(user);
+                    System.out.println(
+                            "New email verification token: " + rawToken
+                    );
+                });
+    }
 }
