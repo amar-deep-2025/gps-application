@@ -6,6 +6,7 @@ import com.gps.device.mapper.DeviceMapper
 import com.gps.device.repository.DeviceModelRepository
 import com.gps.device.repository.DeviceRepository
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class DeviceService(
@@ -32,4 +33,11 @@ class DeviceService(
         )
         return DeviceMapper.toResponse(deviceRepository.save(device))
     }
+
+    fun getDeviceByPublicId(publicId:UUID):DeviceResponse{
+        val device=deviceRepository.findByPublicId(publicId)
+            ?:throw NoSuchElementException("Device not found")
+        return DeviceMapper.toResponse(device);
+    }
+
 }
