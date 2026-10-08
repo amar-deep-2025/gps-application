@@ -4,5 +4,6 @@
     <file url="file://$PROJECT_DIR$/backend/api-gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/backend/auth-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/backend/device-service/src/main/kotlin" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/backend/service-registry/src/main/java" charset="UTF-8" />
   </component>
 </project>
