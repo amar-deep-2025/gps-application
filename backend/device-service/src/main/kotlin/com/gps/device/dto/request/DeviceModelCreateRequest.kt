@@ -12,6 +12,7 @@ data class DeviceModelCreateRequest(
     @field:NotBlank(message = "Model name is required")
     val modelName: String,
 
+    @NotBlank(message="Model number cannot be blank")
     val modelNumber: String? = null,
 
     @field:NotNull(message = "Protocol is required")
