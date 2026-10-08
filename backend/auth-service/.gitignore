@@ -40,3 +40,8 @@ build/
 
 ###tdevtools
 src/main/java/com/gps/auth/devtools/
+
+
+# Maven
+target/
+**/targe
