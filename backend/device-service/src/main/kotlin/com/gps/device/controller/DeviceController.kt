@@ -2,8 +2,10 @@ package com.gps.device.controller
 
 import com.gps.device.dto.request.DeviceCreateRequest
 import com.gps.device.dto.response.DeviceResponse
+
 import com.gps.device.service.DeviceService
 import jakarta.validation.Valid
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -17,9 +19,14 @@ class DeviceController(
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun createDevice(@Valid @RequestBody
-                     request:DeviceCreateRequest):DeviceResponse=
-        deviceService.create(request)
+    fun createDevice(
+        @Valid @RequestBody request: DeviceCreateRequest,
+        authentication: Authentication
+    ): DeviceResponse =
+        deviceService.create(
+            request,
+            UUID.fromString(authentication.name)
+        )
 
 
     @GetMapping("/{publicId}")

@@ -2,7 +2,6 @@ package com.gps.device.service
 
 import com.gps.device.dto.request.DeviceCreateRequest
 import com.gps.device.dto.response.DeviceResponse
-import com.gps.device.entity.Device
 import com.gps.device.mapper.DeviceMapper
 import com.gps.device.repository.DeviceModelRepository
 import com.gps.device.repository.DeviceRepository
@@ -15,7 +14,7 @@ class DeviceService(
     private val deviceRepository: DeviceRepository
 ) {
 
-    fun create(request: DeviceCreateRequest): DeviceResponse{
+    fun create(request: DeviceCreateRequest,userPublicId:UUID): DeviceResponse{
 
         if (deviceRepository.existsByImei(request.imei)){
             throw IllegalArgumentException("IMEI already exists")
@@ -29,8 +28,9 @@ class DeviceService(
             ?:throw NoSuchElementException("Device model not found")
 
         val device=DeviceMapper.toEntity(
-            request=request,
-            deviceModel=deviceModel
+            request = request,
+            deviceModel = deviceModel,
+            userPublicId = userPublicId
         )
         return DeviceMapper.toResponse(deviceRepository.save(device))
     }

@@ -29,6 +29,9 @@ class Device(
     )
     var publicId: UUID = UUID.randomUUID(),
 
+    @Column(name = "user_public_id", nullable = false)
+    var userPublicId: UUID,
+
     @Column(name = "serial_number", nullable = false)
     var serialNumber: String,
 

@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull
 import java.util.UUID
 
 data class DeviceCreateRequest(
-
     @field:NotBlank(message = "Serial number is required")
     val serialNumber: String,
 

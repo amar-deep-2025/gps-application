@@ -5,12 +5,14 @@ import com.gps.device.device.entity.DeviceModel
 import com.gps.device.dto.request.DeviceCreateRequest
 import com.gps.device.enums.DeviceLifecycleState
 import com.gps.device.enums.DeviceStatus
+import java.util.*
 
 object DeviceMapper {
 
     fun toEntity(
         request: DeviceCreateRequest,
-        deviceModel: DeviceModel
+        deviceModel: DeviceModel,
+        userPublicId: UUID
     ): Device =
         Device(
             serialNumber = request.serialNumber,
@@ -19,7 +21,9 @@ object DeviceMapper {
             deviceModel = deviceModel,
             status = DeviceStatus.INACTIVE,
             lifecycleState = DeviceLifecycleState.REGISTERED,
-            firmwareVersion = request.firmwareVersion
+            firmwareVersion = request.firmwareVersion,
+            userPublicId = userPublicId
+
         )
 
     fun toResponse(entity: Device): DeviceResponse =
