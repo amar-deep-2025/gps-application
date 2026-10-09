@@ -37,37 +37,58 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
 	<dependencies>
 
+		<!-- Eureka Client -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
+		<!-- Spring Web -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-
+		<!-- Database -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
 
+		<!-- Validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
-
+		<!-- Actuator -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<!-- Distributed Tracing -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
 
+		<!-- Zipkin Reporter -->
+		<dependency>
+			<groupId>io.zipkin.reporter2</groupId>
+			<artifactId>zipkin-reporter-brave</artifactId>
+		</dependency>
+
+		<!-- Kotlin -->
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-reflect</artifactId>
@@ -78,18 +99,18 @@
 			<artifactId>kotlin-stdlib</artifactId>
 		</dependency>
 
-
 		<dependency>
 			<groupId>com.fasterxml.jackson.module</groupId>
 			<artifactId>jackson-module-kotlin</artifactId>
 		</dependency>
 
+		<!-- JPA API -->
 		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<groupId>jakarta.persistence</groupId>
+			<artifactId>jakarta.persistence-api</artifactId>
 		</dependency>
 
+		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -101,10 +122,6 @@
 			<artifactId>kotlin-test-junit5</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>jakarta.persistence</groupId>
-			<artifactId>jakarta.persistence-api</artifactId>
-		</dependency>
 
 	</dependencies>
 
@@ -114,7 +131,6 @@
 		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
 
 		<plugins>
-
 
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -126,7 +142,6 @@
 				<artifactId>kotlin-maven-plugin</artifactId>
 
 				<configuration>
-
 					<jvmTarget>21</jvmTarget>
 
 					<args>
@@ -140,21 +155,13 @@
 					</compilerPlugins>
 
 					<pluginOptions>
-						<option>
-							all-open:annotation=jakarta.persistence.Entity
-						</option>
-						<option>
-							all-open:annotation=jakarta.persistence.MappedSuperclass
-						</option>
-						<option>
-							all-open:annotation=jakarta.persistence.Embeddable
-						</option>
+						<option>all-open:annotation=jakarta.persistence.Entity</option>
+						<option>all-open:annotation=jakarta.persistence.MappedSuperclass</option>
+						<option>all-open:annotation=jakarta.persistence.Embeddable</option>
 					</pluginOptions>
-
 				</configuration>
 
 				<dependencies>
-
 					<dependency>
 						<groupId>org.jetbrains.kotlin</groupId>
 						<artifactId>kotlin-maven-allopen</artifactId>
@@ -166,7 +173,6 @@
 						<artifactId>kotlin-maven-noarg</artifactId>
 						<version>${kotlin.version}</version>
 					</dependency>
-
 				</dependencies>
 
 			</plugin>

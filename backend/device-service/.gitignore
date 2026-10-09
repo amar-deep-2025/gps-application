@@ -35,3 +35,5 @@ build/
 # Environment variables
 .env
 *.env
+# Maven build output
+**/target/
