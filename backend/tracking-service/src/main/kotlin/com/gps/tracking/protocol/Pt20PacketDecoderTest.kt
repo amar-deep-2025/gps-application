@@ -73,4 +73,19 @@ class Pt20PacketDecoderTest {
         assertEquals(0xEB47, result.crc)
         assertEquals(0, result.content.size)
     }
+
+    @Test
+    fun `should reject extended frame with incorrect length`(){
+        val packet= byteArrayOf(
+            0x79, 0x79,       // Extended start bits
+            0x00, 0x05,       // Length says 5 bytes
+            0x21,             // Protocol number
+            0x00, 0x01,       // Serial number
+            0x00,             // Incomplete CRC
+            0x0D, 0x0A  //stop bits
+        )
+        assertThrows(IllegalArgumentException::class.java){
+            decoder.decode(packet)
+        }
+    }
 }
