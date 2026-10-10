@@ -43,4 +43,18 @@ class Pt20PacketDecoderTest {
             decoder.decode(packet)
         }
     }
+    @Test
+    fun `should reject packet with incorrect length`() {
+        val packet = byteArrayOf(
+            0x78, 0x78, 0x06, // Incorrect length field
+            0x01,
+            0x00, 0x01,
+            0x00, 0x00,
+            0x0D, 0x0A
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            decoder.decode(packet)
+        }
+    }
 }
