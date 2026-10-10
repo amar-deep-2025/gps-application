@@ -102,6 +102,7 @@ class Pt20GpsLocationDecoderTest {
 
 
     }
+
     @Test
     fun `should reject invalid GPS timestamp`() {
         val content = ByteArray(29)
