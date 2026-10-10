@@ -24,21 +24,24 @@ class JwtUtil(
             .parseSignedClaims(token)
             .payload
     }
-
     fun isAccessTokenValid(token: String): Boolean {
         return try {
             val claims = extractClaims(token)
             val publicId = claims.subject
             val type = claims["type", String::class.java]
 
+            println("JWT subject: $publicId")
+            println("JWT type: $type")
+
             type == "access" && !publicId.isNullOrBlank()
         } catch (ex: JwtException) {
+            println("JWT exception: ${ex.javaClass.simpleName}: ${ex.message}")
             false
         } catch (ex: IllegalArgumentException) {
+            println("Argument exception: ${ex.message}")
             false
         }
     }
-
     fun extractPublicId(token: String): String {
         return extractClaims(token).subject
     }

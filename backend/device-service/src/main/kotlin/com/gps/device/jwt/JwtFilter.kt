@@ -1,4 +1,3 @@
-
 package com.gps.device.jwt
 
 import jakarta.servlet.FilterChain
@@ -31,16 +30,39 @@ class JwtFilter(
 
         val token = authHeader.substring(7)
 
-        if (jwtUtil.isAccessTokenValid(token)) {
-            val publicId = jwtUtil.extractPublicId(token)
+        try {
+            if (!jwtUtil.isAccessTokenValid(token)) {
+                response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid access token"
+                )
+                return
+            }
 
-            val authentication = UsernamePasswordAuthenticationToken(
-                publicId,
-                null,
-                AuthorityUtils.NO_AUTHORITIES
+            if (SecurityContextHolder.getContext().authentication == null) {
+                val publicId = jwtUtil.extractPublicId(token)
+
+                val authentication =
+                    UsernamePasswordAuthenticationToken(
+                        publicId,
+                        null,
+                        AuthorityUtils.NO_AUTHORITIES
+                    )
+
+                val context =
+                    SecurityContextHolder.createEmptyContext()
+
+                context.authentication = authentication
+                SecurityContextHolder.setContext(context)
+            }
+        } catch (ex: Exception) {
+            SecurityContextHolder.clearContext()
+
+            response.sendError(
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Invalid or expired access token"
             )
-
-            SecurityContextHolder.getContext().authentication = authentication
+            return
         }
 
         filterChain.doFilter(request, response)
