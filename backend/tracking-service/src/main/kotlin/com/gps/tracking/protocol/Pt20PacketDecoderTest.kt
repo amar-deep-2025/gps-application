@@ -17,4 +17,18 @@ class Pt20PacketDecoderTest {
             decoder.decode(packet)
         }
     }
+
+    @Test
+    fun `should reject packet with invalid CRC`(){
+        val packet= byteArrayOf(
+            0x78, 0x78, 0x05,
+            0x01,
+            0x00, 0x01,
+            0x00, 0x00,
+            0x0D, 0x0A
+        )
+        assertThrows(IllegalArgumentException::class.java){
+            decoder.decode(packet)
+        }
+    }
 }
