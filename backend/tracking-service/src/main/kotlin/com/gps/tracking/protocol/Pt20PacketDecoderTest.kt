@@ -31,4 +31,16 @@ class Pt20PacketDecoderTest {
             decoder.decode(packet)
         }
     }
+    @Test
+    fun `should reject packet with invalid stop bits`() {
+        val packet = byteArrayOf(
+            0x78, 0x78, 0x05, 0x01,
+            0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            decoder.decode(packet)
+        }
+    }
 }
