@@ -126,5 +126,29 @@ class Pt20GpsLocationDecoderTest {
             decoder.decode(packet)
         }
     }
+    @Test
+    fun `should reject incomplete GPS location payload`() {
+        val content = ByteArray(17)
+
+        content[0] = 26
+        content[1] = 10
+        content[2] = 9
+        content[3] = 12
+        content[4] = 30
+        content[5] = 45
+        content[6] = 0xCB.toByte()
+
+        val packet = Pt20Packet(
+            protocolNumber = 0x22,
+            content = content,
+            serialNumber = 1,
+            crc = 0,
+            rawPacket = byteArrayOf()
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            decoder.decode(packet)
+        }
+    }
 
 }
