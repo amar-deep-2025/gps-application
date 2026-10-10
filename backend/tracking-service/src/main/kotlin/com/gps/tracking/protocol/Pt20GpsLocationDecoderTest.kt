@@ -20,4 +20,18 @@ class Pt20GpsLocationDecoderTest {
             decoder.decode(packet)
         }
     }
+    @Test
+    fun `should reject empty GPS payload`() {
+        val packet = Pt20Packet(
+            protocolNumber = 0x22,
+            content = byteArrayOf(),
+            serialNumber = 1,
+            crc = 0,
+            rawPacket = byteArrayOf()
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            decoder.decode(packet)
+        }
+    }
 }
