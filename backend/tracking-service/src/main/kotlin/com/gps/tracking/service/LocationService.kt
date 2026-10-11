@@ -43,9 +43,19 @@ class LocationService(
         return locationRepository.save(location)
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     fun getLatestLocation(devicePublicId: UUID):Location{
         return locationRepository.findFirstByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
             ?:throw NoSuchElementException("No location found for devices: $devicePublicId")
+    }
+
+    @Transactional(readOnly = true)
+    fun getAllLocations(devicePublicId: UUID):List<Location>{
+        val locations= locationRepository.findAllByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
+
+        if (locations.isEmpty()){
+            throw NoSuchElementException("No locations found for device:$devicePublicId")
+        }
+        return  locations
     }
 }

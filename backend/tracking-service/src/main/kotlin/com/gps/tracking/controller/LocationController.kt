@@ -33,4 +33,11 @@ class LocationController(
         val location= locationService.getLatestLocation(devicePublicId)
         return locationMapper.toResponse(location)
     }
+
+    @GetMapping("/{devicePublicId}")
+    @ResponseStatus(HttpStatus.OK)
+    fun getAllLocations(@PathVariable devicePublicId: UUID): List<LocationResponse>{
+        return locationService.getAllLocations(devicePublicId)
+            .map(locationMapper::toResponse)
+    }
 }
