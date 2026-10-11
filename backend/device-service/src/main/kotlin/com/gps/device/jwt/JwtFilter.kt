@@ -14,6 +14,13 @@ class JwtFilter(
     private val jwtUtil: JwtUtil
 ) : OncePerRequestFilter() {
 
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        return request.requestURI == "/rpc" &&
+                !request.getHeader("X-Service-API-Key").isNullOrBlank()
+    }
+
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,

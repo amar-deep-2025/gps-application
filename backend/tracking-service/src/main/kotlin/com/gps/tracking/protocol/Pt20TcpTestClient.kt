@@ -5,60 +5,94 @@ import java.net.Socket
 
 object Pt20TcpTestClient {
 
+
     @JvmStatic
     fun main(args: Array<String>) {
-        val content = ByteArray(18)
+        val terminalId = "867648060123456"
 
-        // UTC timestamp: 2026-10-11 10:30:45
-        content[0] = 26
-        content[1] = 10
-        content[2] = 11
-        content[3] = 10
-        content[4] = 30
-        content[5] = 45
+        // PT20 login packet: Terminal ID = 8 bytes
+        val loginContent = ByteArray(12)
 
-        // GPS information: 11 satellites
-        content[6] = 0xCB.toByte()
+        val imeiHex = terminalId
+            .padStart(16, '0')
+            .chunked(2)
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
 
-        // Latitude: 28.6139
-        putUnsignedInt(
-            content, 7,
-            (28.6139 * 1_800_000).toLong()
-        )
+        imeiHex.copyInto(loginContent, destinationOffset = 0)
 
-        // Longitude: 77.2090
-        putUnsignedInt(
-            content, 11,
-            (77.2090 * 1_800_000).toLong()
-        )
+        // Terminal type identifier
+        loginContent[8] = 0x00
+        loginContent[9] = 0x01
 
-        // Speed: 40 km/h
-        content[15] = 40
+        // Time zone/language: GMT+8, English
+        loginContent[10] = 0x32
+        loginContent[11] = 0x02
 
-        // North + East flags, heading = 90 degrees
-        content[16] = 0x0C
-        content[17] = 90
-
-        val packet = buildPacket(content, serialNumber = 1)
-
-        println("Sending PT20 test packet:")
-        println(
-            packet.joinToString(" ") {
-                "%02X".format(it.toInt() and 0xFF)
-            }
-        )
-
-        Socket("127.0.0.1", 5054).use { socket ->
-            socket.getOutputStream().apply {
-                write(packet)
-                flush()
-            }
+        val loginPacket = buildPacket(loginContent, serialNumber = 1).also {
+            it[3] = 0x01
+            val serialIndex = it.size - 6
+            val crc = calculateCrc(it, 2, serialIndex + 2)
+            it[serialIndex + 2] = (crc shr 8).toByte()
+            it[serialIndex + 3] = crc.toByte()
         }
 
-        println("Test packet sent successfully.")
+
+        Socket("127.0.0.1", 5054).use { socket ->
+            val output = socket.getOutputStream()
+
+            // Send login packet first
+            output.write(loginPacket)
+            output.flush()
+            println("PT20 login test packet sent.")
+
+            // GPS packet content: 18 bytes
+            val gpsContent = ByteArray(18)
+
+            // Timestamp: 2026-10-11 10:30:45 UTC
+            gpsContent[0] = 26
+            gpsContent[1] = 10
+            gpsContent[2] = 11
+            gpsContent[3] = 10
+            gpsContent[4] = 30
+            gpsContent[5] = 45
+
+            // GPS information: 11 satellites
+            gpsContent[6] = 0xCB.toByte()
+
+            // Latitude: 28.6139
+            putUnsignedInt(
+                gpsContent, 7,
+                (28.6139 * 1_800_000).toLong()
+            )
+
+            // Longitude: 77.2090
+            putUnsignedInt(
+                gpsContent, 11,
+                (77.2090 * 1_800_000).toLong()
+            )
+
+            // Speed: 40 km/h
+            gpsContent[15] = 40
+
+            // Course/state: heading 90°, North + East flags
+            gpsContent[16] = 0x1C
+            gpsContent[17] = 0x5A
+
+            val gpsPacket = buildPacket(
+                gpsContent,
+                serialNumber = 2
+            )
+
+            output.write(gpsPacket)
+            output.flush()
+
+            println("PT20 GPS test packet sent.")
+        }
     }
 
-    private fun putUnsignedInt(
+
+        private fun putUnsignedInt(
         target: ByteArray,
         offset: Int,
         value: Long
@@ -131,4 +165,5 @@ object Pt20TcpTestClient {
 
         return fcs.inv() and 0xFFFF
     }
+
 }

@@ -1,6 +1,9 @@
 
 package com.gps.tracking.protocol
 
+import com.gps.tracking.client.DeviceJsonRpcClient
+import com.gps.tracking.dto.request.LocationRequest
+import com.gps.tracking.service.LocationService
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -9,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -16,7 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Component
 class Pt20TcpServer(
     @Value("\${tracking.tcp.port:5054}")
-    private val port: Int
+    private val port: Int,
+    private val locationService:LocationService,
+    private val deviceJsonRpcClient: DeviceJsonRpcClient
 ) {
     private val log = LoggerFactory.getLogger(Pt20TcpServer::class.java)
     private val packeDecoder=Pt20PacketDecoder()
@@ -65,7 +71,9 @@ class Pt20TcpServer(
     }
 
     private fun handleClient(socket: Socket) {
+
         socket.use { client ->
+            var devicePublicId: UUID?=null
             try {
                 client.soTimeout = 120_000
                 val input = client.getInputStream()
@@ -84,19 +92,53 @@ class Pt20TcpServer(
                        try{
                            val decodedPacket=packeDecoder.decode(bytes)
                            log.info("PT20 packet decoded: protocol =0x{}, serial={}", "%02x".format(decodedPacket.protocolNumber),decodedPacket.serialNumber)
-                           if (decodedPacket.protocolNumber==0x22){
-                               val location=gpsLocationDecoder.decode(decodedPacket)
-                               log.info("PT20 GPS location: latitude ={}, longitude={},speed={}km/h,"+"heading={}, satellites={}, gpsFixed={}, gpsTimestamp={}",
-                                   location.latitude,
-                                   location.longitude,
-                                   location.speed,
-                                   location.heading,
-                                   location.satelliteCount,
-                                   location.gpsFixed,
-                                   location.gpsTimestamp)
-                           }else{
-                               log.info("PT20 non-location packet received: protocol=0x{}","0x2x".format(decodedPacket.protocolNumber))
+
+                           when (decodedPacket.protocolNumber) {
+                               0x01 -> {
+                                   val imei = Pt20LoginDecoder.decodeImei(decodedPacket.content)
+                                   log.info("PT20 login packet received, IMEI={}", imei)
+                                   devicePublicId=deviceJsonRpcClient.getDevicePublicByImei(imei)
+                                   log.info("Device resolved successfully, publicId={}", devicePublicId)
+                               }
+
+                               0x22 -> {
+                                   val location = gpsLocationDecoder.decode(decodedPacket)
+
+                                   log.info(
+                                       "PT20 GPS location: latitude={}, longitude={}, speed={} km/h, heading={}, satellites={}, gpsFixed={}, gpsTimestamp={}",
+                                       location.latitude,
+                                       location.longitude,
+                                       location.speed,
+                                       location.heading,
+                                       location.satelliteCount,
+                                       location.gpsFixed,
+                                       location.gpsTimestamp
+                                   )
+                                   log.info("PT20 GPS packet received; saving location")
+
+                                   val registeredDeviceId=devicePublicId?:throw IllegalStateException("GPS packet received before device login")
+
+                                   locationService.saveLocation(
+                                       LocationRequest(
+                                           devicePublicId=registeredDeviceId,
+                                           latitude = location.latitude,
+                                           longitude =location.longitude,
+                                           speed=location.speed.toDouble(),
+                                           gpsTimestamp = location.gpsTimestamp
+                                       )
+                                   )
+
+                                   log.info("GPS location saved for device={}", registeredDeviceId)
+                               }
+
+                               else -> {
+                                   log.info(
+                                       "PT20 non-location packet received: protocol=0x{}",
+                                       "%02X".format(decodedPacket.protocolNumber)
+                                   )
+                               }
                            }
+
                        }catch(ex:IllegalArgumentException){
                            log.warn("Invalid PT20 packet:{}",ex.message)
                        }catch (ex:Exception){

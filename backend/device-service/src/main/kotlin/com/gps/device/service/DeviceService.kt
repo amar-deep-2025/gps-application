@@ -46,4 +46,10 @@ class DeviceService(
             .map { device-> DeviceMapper.toResponse(device)  }
 
 
+    fun getDeviceByImei(imei:String):DeviceResponse{
+        val device=deviceRepository.findByImei(imei)
+            ?:throw NoSuchElementException("Device not found")
+
+        return DeviceMapper.toResponse(device)
+    }
 }
