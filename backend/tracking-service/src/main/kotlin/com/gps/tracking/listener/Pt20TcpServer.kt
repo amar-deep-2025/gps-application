@@ -19,6 +19,8 @@ class Pt20TcpServer(
     private val port: Int
 ) {
     private val log = LoggerFactory.getLogger(Pt20TcpServer::class.java)
+    private val packeDecoder=Pt20PacketDecoder()
+    private val gpsLocationDecoder=Pt20GpsLocationDecoder()
     private val running = AtomicBoolean(false)
     private val clients: ExecutorService =
         Executors.newCachedThreadPool()
@@ -79,13 +81,27 @@ class Pt20TcpServer(
                     // PT20 packet terminator: 0D 0A
                     if (previous == 0x0D && current == 0x0A) {
                         val bytes = packet.toByteArray()
-                        log.info(
-                            "PT20 raw packet from {}: {}",
-                            client.remoteSocketAddress,
-                            bytes.joinToString(" ") {
-                                "%02X".format(it.toInt() and 0xFF)
-                            }
-                        )
+                       try{
+                           val decodedPacket=packeDecoder.decode(bytes)
+                           log.info("PT20 packet decoded: protocol =0x{}, serial={}", "%02x".format(decodedPacket.protocolNumber),decodedPacket.serialNumber)
+                           if (decodedPacket.protocolNumber==0x22){
+                               val location=gpsLocationDecoder.decode(decodedPacket)
+                               log.info("PT20 GPS location: latitude ={}, longitude={},speed={}km/h,"+"heading={}, satellites={}, gpsFixed={}, gpsTimestamp={}",
+                                   location.latitude,
+                                   location.longitude,
+                                   location.speed,
+                                   location.heading,
+                                   location.satelliteCount,
+                                   location.gpsFixed,
+                                   location.gpsTimestamp)
+                           }else{
+                               log.info("PT20 non-location packet received: protocol=0x{}","0x2x".format(decodedPacket.protocolNumber))
+                           }
+                       }catch(ex:IllegalArgumentException){
+                           log.warn("Invalid PT20 packet:{}",ex.message)
+                       }catch (ex:Exception){
+                           log.error("failed to process PT20 packet", ex)
+                       }
                         packet.reset()
                     }
 
