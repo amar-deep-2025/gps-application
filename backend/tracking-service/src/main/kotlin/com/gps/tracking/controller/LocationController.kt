@@ -7,6 +7,7 @@ import com.gps.tracking.mapper.LocationMapper
 import com.gps.tracking.service.LocationService
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/locations")
@@ -23,6 +24,13 @@ class LocationController(
 
         val location = locationService.saveLocation(request)
 
+        return locationMapper.toResponse(location)
+    }
+
+    @GetMapping("/{devicePublicId}/latest")
+    @ResponseStatus(HttpStatus.OK)
+    fun getLatestLocation(@PathVariable devicePublicId:UUID):LocationResponse{
+        val location= locationService.getLatestLocation(devicePublicId)
         return locationMapper.toResponse(location)
     }
 }

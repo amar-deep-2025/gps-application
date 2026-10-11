@@ -5,6 +5,8 @@ import com.gps.tracking.entity.Location
 import com.gps.tracking.repository.LocationRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
+import kotlin.NoSuchElementException
 
 
 @Service
@@ -39,5 +41,11 @@ class LocationService(
         )
 
         return locationRepository.save(location)
+    }
+
+    @Transactional
+    fun getLatestLocation(devicePublicId: UUID):Location{
+        return locationRepository.findFirstByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
+            ?:throw NoSuchElementException("No location found for devices: $devicePublicId")
     }
 }
