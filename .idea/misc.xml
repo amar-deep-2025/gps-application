@@ -9,6 +9,7 @@
         <option value="$PROJECT_DIR$/backend/device-service/pom.xml" />
         <option value="$PROJECT_DIR$/backend/service-registry/pom.xml" />
         <option value="$PROJECT_DIR$/backend/tracking-service/pom.xml" />
+        <option value="$PROJECT_DIR$/backend/notification-service/pom.xml" />
       </list>
     </option>
   </component>

@@ -10,6 +10,7 @@
         <module name="api-gateway" />
         <module name="device-service" />
         <module name="service-registry" />
+        <module name="notification-service" />
         <module name="tracking-service" />
       </profile>
       <profile name="Annotation profile for auth-service" enabled="true">
@@ -28,6 +29,7 @@
       <module name="api-gateway" options="-parameters" />
       <module name="auth-service" options="-parameters" />
       <module name="device-service" options="-parameters" />
+      <module name="notification-service" options="-parameters" />
       <module name="service-registry" options="-parameters" />
       <module name="tracking-service" options="-parameters" />
     </option>

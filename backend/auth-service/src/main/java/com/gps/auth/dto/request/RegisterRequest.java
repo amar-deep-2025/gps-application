@@ -23,9 +23,13 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message="Password is required")
-    @Size(min=6, max=30, message = "password must be between 6 and 20 characters")
+    @Size(min=6, max=30, message = "password must be between 6 and 30 characters")
     private String password;
 
     @NotBlank(message="Phone number is required")
+    @Pattern(
+            regexp = "^[6-9]\\d{9}$",
+            message = "Please provide a valid 10-digit Indian mobile number"
+    )
     private String phone;
 }
