@@ -3,6 +3,7 @@ package com.gps.notification.kafka;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gps.notification.dto.event.NotificationEvent;
+import com.gps.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +18,14 @@ public class NotificationEventConsumer {
             LoggerFactory.getLogger(NotificationEventConsumer.class);
 
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
-
-    @KafkaListener(topics = "gps-notification-events")
+    @KafkaListener(topics = "gps-notification-json-test")
     public void consume(String message) {
         try{
             NotificationEvent event=objectMapper.readValue(message, NotificationEvent.class);
+
+            notificationService.processEvent(event);
 
             log.info("Notification event received : eventId={}, type={}, userId={}",
                     event.eventId(),event.type(), event.userId());
