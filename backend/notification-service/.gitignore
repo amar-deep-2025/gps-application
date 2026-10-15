@@ -39,4 +39,5 @@ build/
 # Maven build output
 **/target/
 
-
+# frontend
+frontend/mobile/gps-mobile
