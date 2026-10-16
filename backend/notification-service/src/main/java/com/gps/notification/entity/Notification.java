@@ -34,7 +34,7 @@ public class Notification {
     private Long id;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId;
+    private UUID userId;
 
     @Column(name = "device_public_id")
     private UUID devicePublicId;

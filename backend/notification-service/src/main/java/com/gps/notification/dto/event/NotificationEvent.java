@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record NotificationEvent(
         UUID eventId,
-        Long userId,
+        UUID userId,
         UUID devicePublicId,
         String type,
         String title,
