@@ -55,6 +55,9 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name="event_id", unique = true,length = 36)
+    private UUID eventId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();

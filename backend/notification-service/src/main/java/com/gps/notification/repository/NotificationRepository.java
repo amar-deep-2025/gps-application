@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface NotificationRepository
         extends JpaRepository<Notification, Long> {
@@ -12,4 +13,6 @@ public interface NotificationRepository
     List<Notification> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     long countByUserIdAndIsReadFalse(Long userId);
+
+    boolean existsByEventId(UUID eventId);
 }
