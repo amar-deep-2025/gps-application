@@ -134,4 +134,12 @@ public class AuthController {
         );
     }
 
+    @GetMapping("/internal/users/{publicId}/email")
+    public ResponseEntity<Map<String, String>> getEmail(@PathVariable String publicId){
+        String email=authService.getEmailByPublicId(publicId);
+        return ResponseEntity.ok(
+                Map.of("email",email)
+        );
+    }
+
 }

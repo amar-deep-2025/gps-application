@@ -13,6 +13,8 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="device-service" target="21" />
+      <module name="service-registry" target="21" />
+      <module name="tracking-service" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">

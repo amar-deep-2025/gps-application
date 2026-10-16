@@ -227,4 +227,16 @@ public class AuthService {
                     );
                 });
     }
+    @Transactional(readOnly = true)
+    public String getEmailByPublicId(String publicId){
+        UUID userPublicId=UUID.fromString(publicId);
+
+        User user=userRepository.findByPublicId(userPublicId)
+                .orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found"
+                ));
+
+        return  user.getEmail();
+    }
 }
