@@ -1,3 +1,4 @@
+
 package com.gps.notification.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,18 +23,29 @@ public class NotificationEventConsumer {
 
     @KafkaListener(topics = "gps-notification-json-test")
     public void consume(String message) {
-        try{
-            NotificationEvent event=objectMapper.readValue(message, NotificationEvent.class);
+
+        if (message == null || message.isBlank()) {
+            log.warn("Empty Kafka message received; skipping");
+            return;
+        }
+
+        try {
+            NotificationEvent event =
+                    objectMapper.readValue(message, NotificationEvent.class);
 
             notificationService.processEvent(event);
 
-            log.info("Notification event received : eventId={}, type={}, userId={}",
-                    event.eventId(),event.type(), event.userId());
+            log.info(
+                    "Notification event processed: eventId={}, type={}, userPublicId={}",
+                    event.eventId(),
+                    event.type(),
+                    event.userId()
+            );
 
-
-        }catch(JsonProcessingException exception){
-            log.error("Invalid notification JSON. Raw message: {}",message, exception);
-            throw new IllegalArgumentException("Invalid notification JSON", exception);
+        } catch (JsonProcessingException exception) {
+            log.error("Invalid notification JSON; skipping message", exception);
+            throw new IllegalArgumentException(
+                    "Invalid notification JSON", exception);
         }
     }
 }

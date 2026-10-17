@@ -1,12 +1,12 @@
 
-package com.gps.notification.dto.response;
+package com.gps.notification.dto.request;
 
 import com.gps.notification.enums.NotificationType;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record NotificationResponse(
+public record NotificationRequest(
         Long id,
         UUID devicePublicId,
         String title,

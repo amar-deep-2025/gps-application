@@ -10,9 +10,10 @@ import java.util.UUID;
 public interface NotificationRepository
         extends JpaRepository<Notification, Long> {
 
-    List<Notification> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    List<Notification> findAllByUserIdOrderByCreatedAtDesc(
+            UUID userId, Pageable pageable);
 
-    long countByUserIdAndIsReadFalse(Long userId);
+    long countByUserIdAndIsReadFalse(UUID userId);
 
     boolean existsByEventId(UUID eventId);
 }
