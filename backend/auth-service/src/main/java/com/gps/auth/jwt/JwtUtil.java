@@ -69,4 +69,5 @@ public class JwtUtil {
     public String extractEmail(String token) {
         return extractClaims(token).get("email", String.class);
     }
+
 }
