@@ -55,7 +55,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String method=request.getMethod();
 
         if ("GET".equalsIgnoreCase(method) &&
-                path.matches("/inernal/users/[^/]+/email")){
+                path.matches("/internal/users/[^/]+/email")){
             String authorizationHeader=request.getHeader("Authorization");
 
             if (authorizationHeader==null || !authorizationHeader.startsWith("Bearer ")){
