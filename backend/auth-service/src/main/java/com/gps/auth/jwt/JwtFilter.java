@@ -51,6 +51,30 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        String path=request.getRequestURI();
+        String method=request.getMethod();
+
+        if ("GET".equalsIgnoreCase(method) &&
+                path.matches("/inernal/users/[^/]+/email")){
+            String authorizationHeader=request.getHeader("Authorization");
+
+            if (authorizationHeader==null || !authorizationHeader.startsWith("Bearer ")){
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Service token is required"
+                );
+                return;
+            }
+            var authentication=new UsernamePasswordAuthenticationToken(
+                    "notification-service",
+                    null,
+                    List.of(new SimpleGrantedAuthority("ROLE_INTERNAL_SERVICE"))
+            );
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            filterChain.doFilter(request,response);
+            return;
+        }
+
         String authorizationHeader =
                 request.getHeader("Authorization");
 

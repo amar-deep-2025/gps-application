@@ -41,6 +41,7 @@ public class SecurityConfig {
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET,"/internal/users/*/email").hasAuthority("ROLE_INTERNAL_SERVICE")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

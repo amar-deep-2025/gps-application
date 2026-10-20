@@ -69,4 +69,36 @@ public class JwtUtil {
     public String extractEmail(String token) {
         return extractClaims(token).get("email", String.class);
     }
+
+    public String generateServiceToken(){
+        Instant now=Instant.now();
+
+        return Jwts.builder()
+                .subject("notification-service")
+                .claim("type","service")
+                .claim("service","auth-service")
+                .claim("target","auth-service")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(120_000)))
+                .signWith(secretKey)
+                .compact();
+    }
+    public boolean isServiceTokenValid(String token){
+        try{
+            Claims claims=extractClaims(token);
+
+            return "service".equals(
+                    claims.get("type", String.class))
+                    && "notification-service".equals(
+                    claims.get("service",String.class))
+                    && "notification-service".equals(
+                    claims.getSubject())
+                    && "auth-service".equals(
+                    claims.get("target", String.class))
+                    && claims.getExpiration()!=null
+                    && claims.getExpiration().after(new Date());
+        }catch(JwtException | IllegalArgumentException ex){
+            return false;
+        }
+    }
 }
