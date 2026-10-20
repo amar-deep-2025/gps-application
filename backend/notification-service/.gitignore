@@ -41,3 +41,7 @@ build/
 
 # frontend
 frontend/mobile/gps-mobile
+
+#compiler
+.idea/compiler.xml
+frontend/mobile/gps-mobile (
