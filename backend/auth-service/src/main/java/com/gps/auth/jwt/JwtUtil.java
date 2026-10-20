@@ -1,3 +1,4 @@
+
 package com.gps.auth.jwt;
 
 import io.jsonwebtoken.Claims;
@@ -53,9 +54,12 @@ public class JwtUtil {
             Claims claims = extractClaims(token);
             String subject = claims.getSubject();
 
-            return "access".equals(claims.get("type", String.class))
+            return "access".equals(
+                    claims.get("type", String.class))
                     && subject != null
-                    && !subject.isBlank();
+                    && !subject.isBlank()
+                    && claims.getExpiration() != null
+                    && claims.getExpiration().after(new Date());
 
         } catch (JwtException | IllegalArgumentException ex) {
             return false;
@@ -70,27 +74,30 @@ public class JwtUtil {
         return extractClaims(token).get("email", String.class);
     }
 
-    public String generateServiceToken(){
-        Instant now=Instant.now();
+    public String generateServiceToken() {
+        Instant now = Instant.now();
 
         return Jwts.builder()
                 .subject("notification-service")
-                .claim("type","service")
-                .claim("service","notification-service")
-                .claim("target","auth-service")
+                .claim("type", "service")
+                .claim("service", "notification-service")
+                .claim("target", "auth-service")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(120_000)))
                 .signWith(secretKey)
                 .compact();
     }
+
     public boolean isServiceTokenValid(String token) {
         try {
             Claims claims = extractClaims(token);
 
-            return "service".equals(claims.get("type", String.class))
+            return "service".equals(
+                    claims.get("type", String.class))
                     && "notification-service".equals(
                     claims.get("service", String.class))
-                    && "notification-service".equals(claims.getSubject())
+                    && "notification-service".equals(
+                    claims.getSubject())
                     && "auth-service".equals(
                     claims.get("target", String.class))
                     && claims.getExpiration() != null
