@@ -1,5 +1,6 @@
-
 package com.gps.tracking.protocol
+
+import java.util.logging.Logger
 
 data class Pt20Packet(
     val protocolNumber: Int,
@@ -7,12 +8,36 @@ data class Pt20Packet(
     val serialNumber: Int,
     val crc: Int,
     val rawPacket: ByteArray
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Pt20Packet
+        if (protocolNumber != other.protocolNumber) return false
+        if (!content.contentEquals(other.content)) return false
+        if (serialNumber != other.serialNumber) return false
+        if (crc != other.crc) return false
+        if (!rawPacket.contentEquals(other.rawPacket)) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = protocolNumber
+        result = 31 * result + content.contentHashCode()
+        result = 31 * result + serialNumber
+        result = 31 * result + crc
+        result = 31 * result + rawPacket.contentHashCode()
+        return result
+    }
+}
 
 class Pt20PacketDecoder {
 
-    fun decode(packet: ByteArray): Pt20Packet
-    {
+    companion object {
+        private val logger = Logger.getLogger(Pt20PacketDecoder::class.java.name)
+    }
+
+    fun decode(packet: ByteArray): Pt20Packet {
         require(packet.size >= 10) {
             "PT20 packet is too short"
         }
@@ -50,16 +75,22 @@ class Pt20PacketDecoder {
             protocolIndex = 4
         }
 
-        val expectedSize =
-            if (isShortFrame) length + 5 else length + 6
+        val expectedSize = if (isShortFrame) {
+            length + 5
+        } else {
+            length + 6
+        }
 
         require(packet.size == expectedSize) {
             "Packet length mismatch: expected $expectedSize, received ${packet.size}"
         }
 
-        // Last 6 bytes: serial (2), CRC (2), stop bits (2)
         val serialIndex = packet.size - 6
         val crcIndex = packet.size - 4
+
+        require(protocolIndex < serialIndex) {
+            "Invalid PT20 packet structure"
+        }
 
         val protocolNumber =
             packet[protocolIndex].toInt() and 0xFF
@@ -68,7 +99,7 @@ class Pt20PacketDecoder {
             ((packet[serialIndex].toInt() and 0xFF) shl 8) or
                     (packet[serialIndex + 1].toInt() and 0xFF)
 
-        val crc =
+        val receivedCrc =
             ((packet[crcIndex].toInt() and 0xFF) shl 8) or
                     (packet[crcIndex + 1].toInt() and 0xFF)
 
@@ -77,42 +108,58 @@ class Pt20PacketDecoder {
             serialIndex
         )
 
-
-        val calculatedCrc=calculateCRc116(
-            packet,
-            start=2,
-            endExclusive=serialIndex+2
+        // Using your original verified CRC range calculation
+        val calculatedCrc = calculateCrcItu(
+            data = packet,
+            start = 2,
+            endExclusive = serialIndex + 2
         )
 
-        require(crc==calculatedCrc){
-            "Invalid PT20 CRC: expected %04X, received %04X".format(calculatedCrc,crc)
+        require(receivedCrc == calculatedCrc) {
+            "Invalid PT20 CRC: calculated %04X, received %04X".format(
+                calculatedCrc,
+                receivedCrc
+            )
         }
+
+        logger.fine(
+            "PT20 packet decoded: protocol=0x%02X, serial=%d, payloadBytes=%d"
+                .format(protocolNumber, serialNumber, content.size)
+        )
 
         return Pt20Packet(
             protocolNumber = protocolNumber,
             content = content,
             serialNumber = serialNumber,
-            crc = crc,
+            crc = receivedCrc,
             rawPacket = packet.copyOf()
         )
     }
-    private fun calculateCRc116(
-        data:ByteArray,
-        start:Int,
-        endExclusive:Int
-    ):Int{
-        var fcs= 0xFFFF
-        for (index in start until endExclusive){
-            fcs=fcs xor(data[index].toInt() and 0xFF)
 
-            repeat(8){
-                fcs=if ((fcs and 1)!=0){
+    // Restored back to your working X.25 / Reverse CCITT algorithm
+    private fun calculateCrcItu(
+        data: ByteArray,
+        start: Int,
+        endExclusive: Int
+    ): Int {
+        require(start >= 0 && endExclusive <= data.size && start <= endExclusive) {
+            "Invalid CRC range"
+        }
+
+        var fcs = 0xFFFF
+
+        for (index in start until endExclusive) {
+            fcs = fcs xor (data[index].toInt() and 0xFF)
+
+            repeat(8) {
+                fcs = if ((fcs and 1) != 0) {
                     (fcs ushr 1) xor 0x8408
-                }else{
+                } else {
                     fcs ushr 1
                 }
             }
         }
+
         return fcs.inv() and 0xFFFF
     }
 }

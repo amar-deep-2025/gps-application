@@ -4,15 +4,18 @@ package com.gps.tracking.protocol
 import com.gps.tracking.client.DeviceJsonRpcClient
 import com.gps.tracking.dto.request.LocationRequest
 import com.gps.tracking.service.LocationService
+import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.io.ByteArrayOutputStream
+import java.io.EOFException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
-import java.util.*
+import java.net.SocketTimeoutException
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -21,22 +24,22 @@ import java.util.concurrent.atomic.AtomicBoolean
 class Pt20TcpServer(
     @Value("\${tracking.tcp.port:5054}")
     private val port: Int,
-    private val locationService:LocationService,
+    private val locationService: LocationService,
     private val deviceJsonRpcClient: DeviceJsonRpcClient
 ) {
     private val log = LoggerFactory.getLogger(Pt20TcpServer::class.java)
-    private val packeDecoder=Pt20PacketDecoder()
-    private val gpsLocationDecoder=Pt20GpsLocationDecoder()
+    private val packetDecoder = Pt20PacketDecoder()
+    private val gpsLocationDecoder = Pt20GpsLocationDecoder()
+
     private val running = AtomicBoolean(false)
-    private val clients: ExecutorService =
-        Executors.newCachedThreadPool()
+    private val clients: ExecutorService = Executors.newCachedThreadPool()
 
     @Volatile
     private var serverSocket: ServerSocket? = null
 
     private var serverThread: Thread? = null
 
-    @jakarta.annotation.PostConstruct
+    @PostConstruct
     fun start() {
         if (!running.compareAndSet(false, true)) return
 
@@ -71,99 +74,254 @@ class Pt20TcpServer(
     }
 
     private fun handleClient(socket: Socket) {
-
         socket.use { client ->
-            var devicePublicId: UUID?=null
+            var devicePublicId: UUID? = null
+
             try {
-                client.soTimeout = 120_000
+                client.soTimeout = 300_000
+
                 val input = client.getInputStream()
-                val packet = ByteArrayOutputStream()
-                var previous = -1
+                val output = client.getOutputStream()
 
-                while (running.get()) {
-                    val current = input.read()
-                    if (current == -1) break
+                while (running.get() && !client.isClosed) {
+                    val first = input.read()
+                    if (first == -1) break
 
-                    packet.write(current)
+                    // Locate a supported frame header.
+                    if (first != 0x78 && first != 0x79) continue
 
-                    // PT20 packet terminator: 0D 0A
-                    if (previous == 0x0D && current == 0x0A) {
-                        val bytes = packet.toByteArray()
-                       try{
-                           val decodedPacket=packeDecoder.decode(bytes)
-                           log.info("PT20 packet decoded: protocol =0x{}, serial={}", "%02x".format(decodedPacket.protocolNumber),decodedPacket.serialNumber)
+                    val second = input.read()
+                    if (second == -1) break
 
-                           when (decodedPacket.protocolNumber) {
-                               0x01 -> {
-                                   val imei = Pt20LoginDecoder.decodeImei(decodedPacket.content)
-                                   log.info("PT20 login packet received, IMEI={}", imei)
-                                   devicePublicId=deviceJsonRpcClient.getDevicePublicByImei(imei)
-                                   log.info("Device resolved successfully, publicId={}", devicePublicId)
-                               }
+                    if (second != first) continue
 
-                               0x22 -> {
-                                   val location = gpsLocationDecoder.decode(decodedPacket)
+                    val isShortFrame = first == 0x78
+                    val length: Int
 
-                                   log.info(
-                                       "PT20 GPS location: latitude={}, longitude={}, speed={} km/h, heading={}, satellites={}, gpsFixed={}, gpsTimestamp={}",
-                                       location.latitude,
-                                       location.longitude,
-                                       location.speed,
-                                       location.heading,
-                                       location.satelliteCount,
-                                       location.gpsFixed,
-                                       location.gpsTimestamp
-                                   )
-                                   log.info("PT20 GPS packet received; saving location")
+                    if (isShortFrame) {
+                        length = input.read()
+                        if (length == -1) break
+                    } else {
+                        val high = input.read()
+                        val low = input.read()
 
-                                   val registeredDeviceId=devicePublicId?:throw IllegalStateException("GPS packet received before device login")
+                        if (high == -1 || low == -1) break
 
-                                   locationService.saveLocation(
-                                       LocationRequest(
-                                           devicePublicId=registeredDeviceId,
-                                           latitude = location.latitude,
-                                           longitude =location.longitude,
-                                           speed=location.speed.toDouble(),
-                                           gpsTimestamp = location.gpsTimestamp
-                                       )
-                                   )
-
-                                   log.info("GPS location saved for device={}", registeredDeviceId)
-                               }
-
-                               else -> {
-                                   log.info(
-                                       "PT20 non-location packet received: protocol=0x{}",
-                                       "%02X".format(decodedPacket.protocolNumber)
-                                   )
-                               }
-                           }
-
-                       }catch(ex:IllegalArgumentException){
-                           log.warn("Invalid PT20 packet:{}",ex.message)
-                       }catch (ex:Exception){
-                           log.error("failed to process PT20 packet", ex)
-                       }
-                        packet.reset()
+                        length = (high shl 8) or low
                     }
 
-                    previous = current
-                }
-            } catch (ex: Exception) {
-                if (running.get()) {
-                    log.warn(
-                        "PT20 client disconnected/error: {}",
-                        ex.message
+                    // Length bytes plus the two stop bytes.
+                    val remainingLength = length + 2
+                    if (remainingLength <= 2 || remainingLength > 65537) {
+                        log.warn("Invalid PT20 frame length: {}", length)
+                        break
+                    }
+
+                    val packetBuffer = ByteArrayOutputStream()
+                    packetBuffer.write(first)
+                    packetBuffer.write(second)
+
+                    if (isShortFrame) {
+                        packetBuffer.write(length)
+                    } else {
+                        packetBuffer.write((length shr 8) and 0xFF)
+                        packetBuffer.write(length and 0xFF)
+                    }
+
+                    val remaining = ByteArray(remainingLength)
+                    var bytesRead = 0
+
+                    while (bytesRead < remainingLength) {
+                        val count = input.read(
+                            remaining,
+                            bytesRead,
+                            remainingLength - bytesRead
+                        )
+
+                        if (count == -1) {
+                            throw EOFException("Incomplete PT20 frame")
+                        }
+
+                        bytesRead += count
+                    }
+
+                    packetBuffer.write(remaining)
+                    val bytes = packetBuffer.toByteArray()
+
+                    log.info("PT20 raw packet: {}", bytes.toHex())
+
+                    val packet = try {
+                        packetDecoder.decode(bytes)
+                    } catch (ex: IllegalArgumentException) {
+                        log.warn("Invalid PT20 packet: {}", ex.message)
+                        continue
+                    }
+
+                    log.info(
+                        "PT20 decoded protocol=0x{}, serial={}, CRC=0x{}",
+                        "%02X".format(packet.protocolNumber),
+                        packet.serialNumber,
+                        "%04X".format(packet.crc)
                     )
+
+                    when (packet.protocolNumber) {
+                        0x01 -> {
+                            val imei = Pt20LoginDecoder.decodeImei(packet.content)
+                            log.info("PT20 login received, IMEI={}", imei)
+
+                            val resolvedId =
+                                deviceJsonRpcClient.getDevicePublicByImei(imei)
+
+                            devicePublicId = resolvedId
+
+                            log.info(
+                                "Device resolved successfully, publicId={}",
+                                resolvedId
+                            )
+
+                            // Standard GT06-style login ACK.
+                            // Verify this format against the PT20 specification.
+                            sendAck(output, packet.protocolNumber, packet.serialNumber)
+                        }
+
+                        0x22 -> {
+                            val registeredDeviceId = devicePublicId
+                                ?: throw IllegalStateException(
+                                    "GPS packet received before device login"
+                                )
+
+                            val location = gpsLocationDecoder.decode(packet)
+
+                            log.info(
+                                "PT20 GPS location: lat={}, lon={}, speed={}, fixed={}",
+                                location.latitude,
+                                location.longitude,
+                                location.speed,
+                                location.gpsFixed
+                            )
+
+                            locationService.saveLocation(
+                                LocationRequest(
+                                    devicePublicId = registeredDeviceId,
+                                    latitude = location.latitude,
+                                    longitude = location.longitude,
+                                    speed = location.speed.toDouble(),
+                                    gpsTimestamp = location.gpsTimestamp
+                                )
+                            )
+
+                            log.info(
+                                "GPS location saved for device={}",
+                                registeredDeviceId
+                            )
+
+                            // Standard GT06-style GPS packet ACK.
+                            // Verify this format against the PT20 specification.
+                            sendAck(output, packet.protocolNumber, packet.serialNumber)
+                        }
+
+                        else -> {
+                            log.info(
+                                "PT20 non-location packet received: protocol=0x{}",
+                                "%02X".format(packet.protocolNumber)
+                            )
+                        }
+                    }
                 }
+            } catch (ex: SocketTimeoutException) {
+                log.warn(
+                    "PT20 read timed out; remote={}, device={}",
+                    client.remoteSocketAddress,
+                    devicePublicId
+                )
+            } catch (ex: SocketException) {
+                log.info(
+                    "PT20 socket closed: remote={}, reason={}",
+                    client.remoteSocketAddress,
+                    ex.message
+                )
+            } catch (ex: Exception) {
+                log.error(
+                    "PT20 client processing failed: remote={}",
+                    client.remoteSocketAddress,
+                    ex
+                )
+            } finally {
+                log.info("PT20 client connection closed: {}", client.remoteSocketAddress)
             }
         }
     }
 
+    private fun sendAck(
+        output: java.io.OutputStream,
+        protocolNumber: Int,
+        serialNumber: Int
+    ) {
+        val frame = byteArrayOf(
+            0x78,
+            0x78,
+            0x05,
+            protocolNumber.toByte(),
+            ((serialNumber shr 8) and 0xFF).toByte(),
+            (serialNumber and 0xFF).toByte(),
+            0x00,
+            0x00,
+            0x0D,
+            0x0A
+        )
+
+        // CRC covers length, protocol number and serial number.
+        val crc = calculateCrc16(frame, 2, 6)
+
+        frame[6] = ((crc shr 8) and 0xFF).toByte()
+        frame[7] = (crc and 0xFF).toByte()
+
+        output.write(frame)
+        output.flush()
+
+        log.info(
+            "PT20 ACK sent: protocol=0x{}, serial={}, bytes={}",
+            "%02X".format(protocolNumber),
+            serialNumber,
+            frame.toHex()
+        )
+    }
+
+    private fun calculateCrc16(
+        data: ByteArray,
+        start: Int,
+        endExclusive: Int
+    ): Int {
+        var fcs = 0xFFFF
+
+        for (index in start until endExclusive) {
+            fcs = fcs xor (data[index].toInt() and 0xFF)
+
+            repeat(8) {
+                fcs = if ((fcs and 1) != 0) {
+                    (fcs ushr 1) xor 0x8408
+                } else {
+                    fcs ushr 1
+                }
+            }
+        }
+
+        return fcs.inv() and 0xFFFF
+    }
+
+    private fun ByteArray.toHex(): String =
+        joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
+
     @PreDestroy
     fun stop() {
         running.set(false)
-        serverSocket?.close()
+
+        try {
+            serverSocket?.close()
+        } catch (ex: Exception) {
+            log.debug("Error closing PT20 server socket", ex)
+        }
+
         clients.shutdownNow()
         serverThread?.interrupt()
     }
