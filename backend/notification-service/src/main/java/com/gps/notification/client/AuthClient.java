@@ -31,7 +31,7 @@ public class AuthClient {
                     .build()
                     .get()
                     .uri("/internal/users/{publicId}/email", userPublicId)
-                    .header("Authorization","Bearer", serviceToken)
+                    .header("Authorization","Bearer "+ serviceToken)
                     .retrieve()
                     .body(Map.class);
 
