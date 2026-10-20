@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
+import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
@@ -53,4 +55,20 @@ public class JwtUtil {
     public String extractEmail(String token) {
         return extractClaims(token).get("email", String.class);
     }
+
+
+    public String generateServiceToken() {
+        Instant now = Instant.now();
+
+        return Jwts.builder()
+                .subject("notification-service")
+                .claim("type", "service")
+                .claim("service", "notification-service")
+                .claim("target", "auth-service")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(120_000)))
+                .signWith(getSecretKey())
+                .compact();
+    }
+
 }
