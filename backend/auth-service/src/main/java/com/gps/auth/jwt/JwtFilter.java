@@ -1,4 +1,3 @@
-
 package com.gps.auth.jwt;
 
 import com.gps.auth.entity.User;
@@ -10,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
@@ -29,7 +30,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-
         String path = request.getServletPath();
         String method = request.getMethod();
 
@@ -56,11 +56,9 @@ public class JwtFilter extends OncePerRequestFilter {
         String authorizationHeader =
                 request.getHeader("Authorization");
 
-        // No Bearer token: continue to Spring Security.
-        // Protected endpoints will be rejected by SecurityConfig.
+        // No Bearer token: let Spring Security handle the request.
         if (authorizationHeader == null
                 || !authorizationHeader.startsWith("Bearer ")) {
-
             filterChain.doFilter(request, response);
             return;
         }
@@ -69,7 +67,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // Service-to-service authentication
+        // Service-to-service authentication for Notification Service.
         boolean internalRoute =
                 "GET".equalsIgnoreCase(method)
                         && path.matches(
@@ -77,9 +75,14 @@ public class JwtFilter extends OncePerRequestFilter {
                 );
 
         if (internalRoute) {
+            log.debug(
+                    "Internal email endpoint requested; validating service token"
+            );
 
             if (!jwtUtil.isServiceTokenValid(token)) {
                 SecurityContextHolder.clearContext();
+
+                log.warn("Internal service-token validation failed");
 
                 response.sendError(
                         HttpServletResponse.SC_UNAUTHORIZED,
@@ -102,11 +105,15 @@ public class JwtFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext()
                     .setAuthentication(authentication);
 
+            log.debug(
+                    "Internal service authenticated successfully"
+            );
+
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Normal user access-token authentication
+        // Normal user access-token authentication.
         if (!jwtUtil.isAccessTokenValid(token)) {
             SecurityContextHolder.clearContext();
 
@@ -117,9 +124,21 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        Claims claims = jwtUtil.extractClaims(token);
-        String publicId = claims.getSubject();
+        Claims claims;
 
+        try {
+            claims = jwtUtil.extractClaims(token);
+        } catch (RuntimeException ex) {
+            SecurityContextHolder.clearContext();
+
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid access token"
+            );
+            return;
+        }
+
+        String publicId = claims.getSubject();
         UUID userPublicId;
 
         try {
