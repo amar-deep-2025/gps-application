@@ -54,24 +54,45 @@ public class JwtFilter extends OncePerRequestFilter {
         String path=request.getRequestURI();
         String method=request.getMethod();
 
-        if ("GET".equalsIgnoreCase(method) &&
-                path.matches("/internal/users/[^/]+/email")){
-            String authorizationHeader=request.getHeader("Authorization");
+        if ("GET".equalsIgnoreCase(method)
+                && path.matches("/internal/users/[^/]+/email")) {
 
-            if (authorizationHeader==null || !authorizationHeader.startsWith("Bearer ")){
+            String authorizationHeader = request.getHeader("Authorization");
+
+            if (authorizationHeader == null
+                    || !authorizationHeader.startsWith("Bearer ")) {
                 response.sendError(
                         HttpServletResponse.SC_UNAUTHORIZED,
                         "Service token is required"
                 );
                 return;
             }
-            var authentication=new UsernamePasswordAuthenticationToken(
-                    "notification-service",
-                    null,
-                    List.of(new SimpleGrantedAuthority("ROLE_INTERNAL_SERVICE"))
-            );
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            filterChain.doFilter(request,response);
+
+            String token = authorizationHeader.substring(7);
+
+            if (!jwtUtil.isServiceTokenValid(token)) {
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Invalid service token"
+                );
+                return;
+            }
+
+            var authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            "notification-service",
+                            null,
+                            List.of(
+                                    new SimpleGrantedAuthority(
+                                            "ROLE_INTERNAL_SERVICE"
+                                    )
+                            )
+                    );
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
+
+            filterChain.doFilter(request, response);
             return;
         }
 
