@@ -1,3 +1,4 @@
+
 package com.gps.notification.security;
 
 import io.jsonwebtoken.Claims;
@@ -5,7 +6,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,6 @@ import java.time.Instant;
 import java.util.Date;
 
 @Component
-@RequiredArgsConstructor
 public class JwtUtil {
 
     @Value("${jwt.access.secret}")
@@ -41,7 +40,9 @@ public class JwtUtil {
                     claims.get("type", String.class))
                     && claims.getSubject() != null
                     && !claims.getSubject().isBlank()
-                    && claims.get("email", String.class) != null;
+                    && claims.get("email", String.class) != null
+                    && claims.getExpiration() != null
+                    && claims.getExpiration().after(new Date());
 
         } catch (JwtException | IllegalArgumentException ex) {
             return false;
@@ -55,7 +56,6 @@ public class JwtUtil {
     public String extractEmail(String token) {
         return extractClaims(token).get("email", String.class);
     }
-
 
     public String generateServiceToken() {
         Instant now = Instant.now();
@@ -71,4 +71,23 @@ public class JwtUtil {
                 .compact();
     }
 
+    public boolean isServiceTokenValid(String token) {
+        try {
+            Claims claims = extractClaims(token);
+
+            return "service".equals(
+                    claims.get("type", String.class))
+                    && "notification-service".equals(
+                    claims.get("service", String.class))
+                    && "notification-service".equals(
+                    claims.getSubject())
+                    && "auth-service".equals(
+                    claims.get("target", String.class))
+                    && claims.getExpiration() != null
+                    && claims.getExpiration().after(new Date());
+
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
+    }
 }
