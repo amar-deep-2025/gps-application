@@ -6,6 +6,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +20,7 @@ public class JwtUtil {
 
     private final SecretKey secretKey;
     private final long expirationMs;
-
+    private Logger log= LoggerFactory.getLogger(JwtUtil.class);
     public JwtUtil(
             @Value("${jwt.access.secret}") String secret,
             @Value("${jwt.expiration-ms}") long expirationMs) {
@@ -29,6 +31,7 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(String publicId, String email) {
+        log.info("Entered in generateServiceToken method");
         Instant now = Instant.now();
 
         return Jwts.builder()
@@ -42,6 +45,7 @@ public class JwtUtil {
     }
 
     public Claims extractClaims(String token) {
+        log.info("Extract claim");
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -50,6 +54,7 @@ public class JwtUtil {
     }
 
     public boolean isAccessTokenValid(String token) {
+        log.info("Entered in the isAccessTokenValid");
         try {
             Claims claims = extractClaims(token);
             String subject = claims.getSubject();
@@ -75,6 +80,7 @@ public class JwtUtil {
     }
 
     public String generateServiceToken() {
+        log.info("Entered in the generateServiceToken");
         Instant now = Instant.now();
 
         return Jwts.builder()
@@ -89,6 +95,7 @@ public class JwtUtil {
     }
 
     public boolean isServiceTokenValid(String token) {
+        log.info("Entered in the isServiceTokenValid");
         try {
             Claims claims = extractClaims(token);
 

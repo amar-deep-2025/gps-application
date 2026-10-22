@@ -53,9 +53,11 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+
         String authorizationHeader =
                 request.getHeader("Authorization");
 
+        log.info("Getting the authorization Header");
         // No Bearer token: let Spring Security handle the request.
         if (authorizationHeader == null
                 || !authorizationHeader.startsWith("Bearer ")) {

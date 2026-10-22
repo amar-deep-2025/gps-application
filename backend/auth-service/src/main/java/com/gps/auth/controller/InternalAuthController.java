@@ -35,7 +35,7 @@ public class InternalAuthController {
         String email = authService.getEmailByPublicId(publicId);
 
         log.info(
-                "[INTERNAL-AUTH] Email lookup successful | publicId={}",
+                "[INTERNAL-AUTHENTIACTION] Email lookup successful | publicId={}",
                 publicId
         );
 
