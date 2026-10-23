@@ -1,5 +1,6 @@
 package com.gps.auth.service;
 
+
 import com.gps.auth.dto.request.*;
 import com.gps.auth.dto.response.LoginResponse;
 import com.gps.auth.dto.response.UserResponse;
@@ -226,5 +227,17 @@ public class AuthService {
                             "New email verification token: " + rawToken
                     );
                 });
+    }
+    @Transactional(readOnly = true)
+    public String getEmailByPublicId(String publicId){
+        UUID userPublicId=UUID.fromString(publicId);
+
+        User user=userRepository.findByPublicId(userPublicId)
+                .orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found"
+                ));
+
+        return  user.getEmail();
     }
 }
