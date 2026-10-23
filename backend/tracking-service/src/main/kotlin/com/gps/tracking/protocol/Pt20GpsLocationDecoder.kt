@@ -92,18 +92,17 @@ class Pt20GpsLocationDecoder {
 
         val courseState = (statusHigh shl 8) or statusLow
 
-        // Lower 10 bits represent heading.
-        val heading = courseState and 0x03FF
-
         // Standard GT06/PT20 Protocol Direction/Fix Flags Corrected Logic:
         // Bit 12: 1 = GPS is fixed and has active satellite lock.
         val gpsFixed = (courseState and 0x1000) != 0
 
         // Bit 11: 0 = East, 1 = West (Yahan 0 check true return karega India region ke liye).
-        val longitudeEast = (courseState and 0x0800)== 0
+        val longitudeEast = (courseState and 0x0800)!= 0
 
         // Bit 10: 0 = North, 1 = South (Yahan 0 check true return karega North Hemisphere ke liye).
         val latitudeNorth = (courseState and 0x0400)!= 0
+        val heading = courseState and 0x03FF
+
 
         val finalLatitude = if (latitudeNorth) {
             latitudeMagnitude
