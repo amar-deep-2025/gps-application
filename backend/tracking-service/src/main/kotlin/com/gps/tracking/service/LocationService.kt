@@ -43,11 +43,11 @@ class LocationService(
         return locationRepository.save(location)
     }
 
-    @Transactional(readOnly = true)
-    fun getLatestLocation(devicePublicId: UUID):Location{
-        return locationRepository.findFirstByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
-            ?:throw NoSuchElementException("No location found for devices: $devicePublicId")
-    }
+//    @Transactional(readOnly = true)
+//    fun getLatestLocation(devicePublicId: UUID):Location{
+//        return locationRepository.findFirstByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
+//            ?:throw NoSuchElementException("No location found for devices: $devicePublicId")
+//    }
 
     @Transactional(readOnly = true)
     fun getAllLocations(devicePublicId: UUID):List<Location>{
@@ -58,4 +58,15 @@ class LocationService(
         }
         return  locations
     }
+
+
+    @Transactional(readOnly = true)
+    fun getLatestLocation(devicePublicId: UUID): Location {
+        return locationRepository
+            .findFirstByDevicePublicIdOrderByReceivedAtDesc(devicePublicId)
+            ?: throw NoSuchElementException(
+                "No location found for device: $devicePublicId"
+            )
+    }
+
 }

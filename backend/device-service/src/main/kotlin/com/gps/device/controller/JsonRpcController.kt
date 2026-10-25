@@ -56,7 +56,22 @@ class JsonRpcController(
                         id = request.id
                     )
                 }
-
+                "updateLastSeenAt" -> {
+                    val imei=request.params
+                        ?.get("imei")
+                        ?.takeIf { it.isTextual }
+                        ?.asText()
+                        ?.takeIf { it.isNotBlank() }
+                        ?:return errorResponse(
+                            request.id,-32602,
+                            "Invalid params: imei is required"
+                        )
+                    deviceService.updateLastSeenAt(imei)
+                    JsonRpcResponse(
+                        result= mapOf("success" to true),
+                        id=request.id
+                    )
+                }
                 else -> errorResponse(
                     request.id,
                     -32601,

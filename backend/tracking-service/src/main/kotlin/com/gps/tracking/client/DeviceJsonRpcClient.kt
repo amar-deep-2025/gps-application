@@ -51,4 +51,27 @@ class DeviceJsonRpcClient(
         return UUID.fromString(publicId)
 
     }
+    fun updateLastSeenAt(imei:String){
+        val response=restClientBuilder.build()
+            .post()
+            .uri(rpcUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("X-service-API-Key", serviceApiKey)
+            .body(
+                mapOf(
+                    "jsonrpc" to "2.0",
+                    "method" to "updateLastSeenAt",
+                    "params" to mapOf("imei" to imei),
+                    "id" to 2
+                )
+            )
+            .retrieve()
+            .body(JsonNode::class.java)?:throw IllegalArgumentException("Empty JSON-RPC response")
+        val error=response.path("error")
+        if(!error.isMissingNode && !error.isNull){
+            throw IllegalArgumentException(
+                "Device Service JSOn-RPC error: ${error.path("message").asText()}"
+            )
+        }
+    }
 }

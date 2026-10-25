@@ -13,4 +13,10 @@ interface LocationRepository : JpaRepository<Location, Long> {
     fun findAllByDevicePublicIdOrderByGpsTimestampDesc(
         devicePublicId: UUID
     ): List<Location>
+
+
+    fun findFirstByDevicePublicIdOrderByReceivedAtDesc(
+        devicePublicId: UUID
+    ): Location?
+
 }

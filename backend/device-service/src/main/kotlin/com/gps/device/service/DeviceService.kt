@@ -6,6 +6,8 @@ import com.gps.device.mapper.DeviceMapper
 import com.gps.device.repository.DeviceModelRepository
 import com.gps.device.repository.DeviceRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 @Service
@@ -51,5 +53,13 @@ class DeviceService(
             ?:throw NoSuchElementException("Device not found")
 
         return DeviceMapper.toResponse(device)
+    }
+
+    @Transactional
+    fun updateLastSeenAt(imei:String){
+        val device=deviceRepository.findByImei(imei)
+            ?:throw NoSuchElementException("Device not found")
+
+        device.lastSeenAt= Instant.now();
     }
 }
