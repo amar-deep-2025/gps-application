@@ -155,30 +155,40 @@ class Pt20TcpServer(
                                     log.info("GPS location metrics records saved successfully for device={}", registeredDeviceId)
                                 }
                                 0x13 -> { // HARDWARE COMPONENT SYSTEM STATE HEARTBEAT
-                                    val heartbeat = heartbeatDecoder.decodeHeartbeat(decodedPacket)
+                                    // 1. Direct call to unified alerts class
+                                    val heartbeatAlert = heartbeatDecoder.decodeHeartbeatAlert(decodedPacket)
 
                                     val registeredDevice = devicePublicId ?: throw IllegalStateException("Heartbeat tracking drop: Session has not performed active channel registration actions")
                                     val imei = deviceImei ?: throw IllegalStateException("Identity map metrics trace data field corrupted or missing inside pool indexes")
 
                                     deviceJsonRpcClient.updateLastSeenAt(imei)
 
+                                    // Complete structural logs with standard string messages
                                     log.info("PT20 heartbeat processed successfully for device mapping container context: {} " +
-                                            "voltageLevel={}, gpsFixed={}, " +
-                                            "lowBattery={}, " +
-                                            "oilElectricDisconnected={}, terminalInfo={},  " +
-                                            "powerFailureFlag={}, vibrationFlag={}, charging={}, alertTag={}, userMsg={}",
-                                        registeredDevice, heartbeat.voltageLevel,
-                                        heartbeat.gpsFixed, heartbeat.lowBatteryFlag,
-                                        heartbeat.oilElectricDisconnected, heartbeat.terminalInfo,
-                                        heartbeat.powerFailureFlag, heartbeat.vibrationFlag, heartbeat.charging,
-                                        heartbeat.activeAlertName, heartbeat.userFriendlyMessage) // 👈 System tag and clean string added to logs
-
-
-                                    // notificationService.sendAlert(imei, heartbeat.userFriendlyMessage)
+                                            "alertTag={}, userMsg={}, isCritical={}",
+                                        registeredDevice, heartbeatAlert.activeAlertName, heartbeatAlert.userFriendlyMessage, heartbeatAlert.isCritical)
 
                                     // DELIVER HEARTBEAT HANDSHAKE STATUS RESPONSE
                                     sendReply(output, decodedPacket.protocolNumber, decodedPacket.serialNumber, isStandardFrame)
                                     log.info("Heartbeat loop state synchronization confirmation successfully written back downstream to tracker terminal.")
+                                }
+
+                                0x26 -> { // REAL-TIME LIVE DEDICATED EMERGENCY ALARM
+                                    // 2. Direct call to dedicated alarms mapping
+                                    val criticalAlarm = heartbeatDecoder.decodeDedicatedAlarm(decodedPacket)
+
+                                    val registeredDevice = devicePublicId ?: throw IllegalStateException("Alarm tracking drop: Session has not performed active channel registration actions")
+                                    val imei = deviceImei ?: throw IllegalStateException("Identity map metrics trace data field corrupted or missing inside pool indexes")
+
+                                    deviceJsonRpcClient.updateLastSeenAt(imei)
+
+                                    log.info("PT20 critical alarm processed successfully for device mapping container context: {} " +
+                                            "alertTag={}, userMsg={}, isCritical={}",
+                                        registeredDevice, criticalAlarm.activeAlertName, criticalAlarm.userFriendlyMessage, criticalAlarm.isCritical)
+
+                                    // DELIVER EMERGENCY ACKNOWLEDGEMENT RESPONSE
+                                    sendReply(output, decodedPacket.protocolNumber, decodedPacket.serialNumber, isStandardFrame)
+                                    log.info("Emergency alarm verification frame successfully written back downstream to tracker terminal.")
                                 }
                                 else -> {
                                     log.info("PT20 custom data packet target path execution branch triggered: protocol=0x{}", "%02X".format(decodedPacket.protocolNumber))
