@@ -1,8 +1,8 @@
 package com.gps.tracking.protocol
 
-import org.testng.Assert.assertThrows
-import org.testng.AssertJUnit.assertEquals
-import org.testng.annotations.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Test
 
 class Pt20GpsLocationDecoderTest {
 
