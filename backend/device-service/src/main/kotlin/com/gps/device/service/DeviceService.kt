@@ -3,10 +3,15 @@ package com.gps.device.service
 import com.gps.device.dto.request.DeviceCreateRequest
 import com.gps.device.dto.response.DeviceResponse
 import com.gps.device.mapper.DeviceMapper
+import com.gps.device.enums.DeviceStatus
 import com.gps.device.repository.DeviceModelRepository
 import com.gps.device.repository.DeviceRepository
 import org.springframework.stereotype.Service
 import java.util.UUID
+import java.time.Instant
+import java.time.Duration
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class DeviceService(
@@ -51,5 +56,36 @@ class DeviceService(
             ?:throw NoSuchElementException("Device not found")
 
         return DeviceMapper.toResponse(device)
+    }
+
+    @Transactional
+    fun markDeviceSeen(publicId: UUID): DeviceResponse {
+        val device = deviceRepository.findByPublicId(publicId)
+            ?: throw NoSuchElementException("Device not found")
+        if (device.status != DeviceStatus.BLOCKED) {
+            device.status = DeviceStatus.ACTIVE
+        }
+        val now = Instant.now()
+        device.lastSeenAt = now
+        device.updatedAt = now
+        return DeviceMapper.toResponse(deviceRepository.save(device))
+    }
+
+    @Transactional
+    @Scheduled(fixedDelayString = "\${device.status.refresh-interval-ms:30000}")
+    fun markStaleDevicesInactive() {
+        val cutoff = Instant.now().minus(Duration.ofMinutes(2))
+        val staleDevices = deviceRepository.findAllByStatusAndLastSeenAtBefore(
+            DeviceStatus.ACTIVE,
+            cutoff
+        )
+        if (staleDevices.isEmpty()) return
+
+        val now = Instant.now()
+        staleDevices.forEach {
+            it.status = DeviceStatus.INACTIVE
+            it.updatedAt = now
+        }
+        deviceRepository.saveAll(staleDevices)
     }
 }

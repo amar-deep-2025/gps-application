@@ -57,6 +57,29 @@ class JsonRpcController(
                     )
                 }
 
+                "markDeviceSeen" -> {
+                    val publicId = request.params
+                        ?.get("publicId")
+                        ?.takeIf { it.isTextual }
+                        ?.asText()
+                        ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+                        ?: return errorResponse(
+                            request.id,
+                            -32602,
+                            "Invalid params: publicId must be a UUID"
+                        )
+
+                    val device = deviceService.markDeviceSeen(publicId)
+                    JsonRpcResponse(
+                        result = mapOf(
+                            "publicId" to device.publicId,
+                            "status" to device.status,
+                            "lastSeenAt" to device.lastSeenAt
+                        ),
+                        id = request.id
+                    )
+                }
+
                 else -> errorResponse(
                     request.id,
                     -32601,

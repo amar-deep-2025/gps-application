@@ -51,4 +51,30 @@ class DeviceJsonRpcClient(
         return UUID.fromString(publicId)
 
     }
+
+    fun markDeviceSeen(publicId: UUID) {
+        val response = restClientBuilder.build()
+            .post()
+            .uri(rpcUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("X-service-API-Key", serviceApiKey)
+            .body(
+                mapOf(
+                    "jsonrpc" to "2.0",
+                    "method" to "markDeviceSeen",
+                    "params" to mapOf("publicId" to publicId.toString()),
+                    "id" to 2
+                )
+            )
+            .retrieve()
+            .body(JsonNode::class.java)
+            ?: throw IllegalArgumentException("Empty JSON-RPC response")
+
+        val error = response.path("error")
+        if (!error.isMissingNode && !error.isNull) {
+            throw IllegalArgumentException(
+                "Device Service JSON-RPC error: " + error.path("message").asText()
+            )
+        }
+    }
 }

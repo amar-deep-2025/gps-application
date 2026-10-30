@@ -6,6 +6,8 @@ import com.gps.tracking.repository.LocationRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.NoSuchElementException
 
 
@@ -50,12 +52,27 @@ class LocationService(
     }
 
     @Transactional(readOnly = true)
-    fun getAllLocations(devicePublicId: UUID):List<Location>{
-        val locations= locationRepository.findAllByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
-
-        if (locations.isEmpty()){
-            throw NoSuchElementException("No locations found for device:$devicePublicId")
+    fun getAllLocations(
+        devicePublicId: UUID,
+        date: LocalDate? = null,
+        timezone: ZoneId = ZoneId.of("UTC")
+    ): List<Location> {
+        val locations = if (date == null) {
+            locationRepository.findAllByDevicePublicIdOrderByGpsTimestampDesc(devicePublicId)
+        } else {
+            val from = date.atStartOfDay(timezone).toInstant()
+            val until = date.plusDays(1).atStartOfDay(timezone).toInstant()
+            locationRepository
+                .findAllByDevicePublicIdAndGpsTimestampGreaterThanEqualAndGpsTimestampLessThanOrderByGpsTimestampDesc(
+                    devicePublicId,
+                    from,
+                    until
+                )
         }
-        return  locations
+
+        if (locations.isEmpty()) {
+            throw NoSuchElementException("No locations found for device: $devicePublicId")
+        }
+        return locations
     }
 }

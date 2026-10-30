@@ -210,6 +210,16 @@ class Pt20TcpServer(
                                 )
                             )
 
+                            runCatching {
+                                deviceJsonRpcClient.markDeviceSeen(registeredDeviceId)
+                            }.onFailure { exception ->
+                                log.warn(
+                                    "Location saved but device status update failed for device={}: {}",
+                                    registeredDeviceId,
+                                    exception.message
+                                )
+                            }
+
                             log.info(
                                 "GPS location saved for device={}",
                                 registeredDeviceId
